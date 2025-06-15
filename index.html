@@ -132,9 +132,9 @@
         const resetButton = document.getElementById('resetButton');
         const messageBox = document.getElementById('messageBox');
 
-        // 一時的なメッセージを表示する関数 (リセット時やゲームクリア時など)
+        // メッセージボックスを表示する関数 (リセット時、ゲームクリア時、マッチ時など)
         // duration: 表示時間（ミリ秒）
-        function displayTempMessage(message, detail = '', duration = 3000) {
+        function showMessageBox(message, detail = '', duration = 3000) {
             messageBox.innerHTML = `<div class="text-2xl font-bold">${message}</div>`;
             if (detail) {
                 messageBox.innerHTML += `<div class="text-base mt-2">${detail}</div>`; // 小さめのフォントで詳細を表示
@@ -144,91 +144,6 @@
                 messageBox.style.display = 'none';
             }, duration);
         }
-
-        // マッチしたカードの情報とAI解説ボタンを表示する関数
-        async function displayMatchMessage(word, definition) {
-            messageBox.innerHTML = `
-                <div class="text-2xl font-bold">マッチしました！</div>
-                <div class="text-lg mt-2">${word}: ${definition}</div>
-                <button id="deepDiveButton" class="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
-                    ✨ AI解説を深掘り ✨
-                </button>
-            `;
-            messageBox.style.display = 'block';
-
-            const deepDiveButton = document.getElementById('deepDiveButton');
-            if (deepDiveButton) {
-                deepDiveButton.onclick = async () => {
-                    deepDiveButton.textContent = 'AIが解説を生成中...';
-                    deepDiveButton.disabled = true;
-                    await generateDeepDiveExplanation(word);
-                    deepDiveButton.disabled = false;
-                    // ボタンはAI解説表示後に消えるか、閉じるボタンに置き換わるので元のテキストに戻す必要はない
-                };
-            }
-            // 5秒後に自動的に隠す（AI解説ボタンがクリックされなかった場合）
-            setTimeout(() => {
-                // AI解説が表示されている場合は隠さない
-                if (deepDiveButton && deepDiveButton.textContent !== 'AIが解説を生成中...') {
-                    messageBox.style.display = 'none';
-                }
-            }, 5000);
-        }
-
-        // Gemini APIを使用して詳細な解説を生成する関数
-        async function generateDeepDiveExplanation(term) {
-            let chatHistory = [];
-            const prompt = `${term}について、高校生物の範囲で、より詳細な解説を500字程度で簡潔にまとめてください。専門用語には簡単な説明を加えてください。`;
-            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-            const payload = { contents: chatHistory };
-            const apiKey = ""; // Canvas環境で自動的に提供されます
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const result = await response.json();
-
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    const text = result.candidates[0].content.parts[0].text;
-                    // 詳細な解説を表示
-                    messageBox.innerHTML = `
-                        <div class="text-2xl font-bold">「${term}」のAI解説</div>
-                        <div class="text-base mt-2 text-left whitespace-pre-wrap">${text}</div>
-                        <button onclick="document.getElementById('messageBox').style.display='none'" class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
-                            閉じる
-                        </button>
-                    `;
-                    messageBox.style.display = 'block';
-                    // AI解説はユーザーが閉じるまで表示
-                } else {
-                    messageBox.innerHTML = `
-                        <div class="text-xl font-bold">AI解説の生成に失敗しました。</div>
-                        <button onclick="document.getElementById('messageBox').style.display='none'" class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
-                            閉じる
-                        </button>
-                    `;
-                    messageBox.style.display = 'block';
-                    console.error("Gemini APIが予期しない構造を返しました、またはコンテンツがありません:", result);
-                }
-            } catch (error) {
-                messageBox.innerHTML = `
-                    <div class="text-xl font-bold">AI解説の生成中にエラーが発生しました。</div>
-                    <div class="text-sm mt-2">${error.message}</div>
-                    <button onclick="document.getElementById('messageBox').style.display='none'" class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
-                        閉じる
-                    </button>
-                `;
-                messageBox.style.display = 'block';
-                console.error("Gemini API呼び出し中にエラーが発生しました:", error);
-            }
-        }
-
 
         // カードをシャッフルする関数
         function shuffle(array) {
@@ -330,10 +245,10 @@
                 // ゲームクリア時の処理
                 const rank = calculateRank(attempts);
                 // Game clear message duration is 10 seconds
-                displayTempMessage(`おめでとうございます！${attempts}回で全てのペアを見つけました！`, `あなたのランクは ${rank} です！`, 10000);
+                showMessageBox(`おめでとうございます！${attempts}回で全てのペアを見つけました！`, `あなたのランクは ${rank} です！`, 10000);
             } else {
-                // マッチしたカードの情報とAI解説ボタンを表示
-                displayMatchMessage(matchedWord, definition);
+                // マッチしたカードの情報と定義を直接表示
+                showMessageBox(`マッチしました！`, `${matchedWord}: ${definition}`, 3000); // 3秒後に自動的に隠す
             }
         }
 
@@ -366,7 +281,7 @@
 
         // リセットボタンのイベントリスナー
         resetButton.addEventListener('click', () => {
-            displayTempMessage('ゲームをリセットしました！');
+            showMessageBox('ゲームをリセットしました！');
             initializeGame();
         });
 
