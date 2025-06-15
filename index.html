@@ -35,7 +35,7 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* shadow-md */
         }
         .card-front {
-            background-color: #6366f1; /* indigo-500 */
+            background-color: #ef4444; /* red-500 */
             color: #ffffff; /* white */
             font-size: 1.5rem; /* text-2xl */
             font-weight: 700; /* font-bold */
@@ -134,7 +134,8 @@
 
         // メッセージボックスを表示する関数 (リセット時、ゲームクリア時、マッチ時など)
         // duration: 表示時間（ミリ秒）
-        function showMessageBox(message, detail = '', duration = 3000) {
+        // callback: メッセージボックスが閉じた後に実行する関数
+        function showMessageBox(message, detail = '', duration = 3000, callback = null) {
             messageBox.innerHTML = `<div class="text-2xl font-bold">${message}</div>`;
             if (detail) {
                 messageBox.innerHTML += `<div class="text-base mt-2">${detail}</div>`; // 小さめのフォントで詳細を表示
@@ -142,6 +143,9 @@
             messageBox.style.display = 'block';
             setTimeout(() => {
                 messageBox.style.display = 'none';
+                if (callback) {
+                    callback(); // コールバックがあれば実行
+                }
             }, duration);
         }
 
@@ -182,7 +186,7 @@
                                 現在はプレースホルダー画像を使用しています。
                                 例: <img src="https://example.com/your-uploaded-image.jpg" alt="カードの表面">
                             -->
-                            <img src="https://r-satake.github.io/sinkeisuijaku3/2025615_020454683_iOS.jpg" alt="カードの表面の画像">
+                            <img src="https://placehold.co/100x100/ef4444/ffffff?text=?" alt="カードの表面の画像">
                         </div>
                         <div class="card-face card-back">${word}</div>
                     </div>
@@ -242,12 +246,14 @@
             resetBoard();
 
             if (matchedPairs === words.length) {
-                // ゲームクリア時の処理
-                const rank = calculateRank(attempts);
-                // Game clear message duration is 10 seconds
-                showMessageBox(`おめでとうございます！${attempts}回で全てのペアを見つけました！`, `あなたのランクは ${rank} です！`, 10000);
+                // 最後のペアがマッチした場合
+                // まず解説を表示し、それが閉じてからランクを表示する
+                showMessageBox(`マッチしました！`, `${matchedWord}: ${definition}`, 3000, () => {
+                    const rank = calculateRank(attempts);
+                    showMessageBox(`おめでとうございます！${attempts}回で全てのペアを見つけました！`, `あなたのランクは ${rank} です！`, 10000);
+                });
             } else {
-                // マッチしたカードの情報と定義を直接表示
+                // 途中のペアがマッチした場合
                 showMessageBox(`マッチしました！`, `${matchedWord}: ${definition}`, 3000); // 3秒後に自動的に隠す
             }
         }
